@@ -2,83 +2,87 @@ let deckId;
 const cardsContainer = document.getElementById("cards");
 const newDeckBtn = document.getElementById("new-deck");
 const drawCardBtn = document.getElementById("draw-cards");
+const winnerSection = document.getElementById("winner");
+const remainingCards = document.getElementById("remaining");
+const computerScoreEl = document.getElementById("computer-score");
+const myScoreEl = document.getElementById("player-score");
 
-function handleClick() {
-  fetch("https://apis.scrimba.com/deckofcards/api/deck/new/shuffle/")
-    .then((res) => res.json())
-    .then((data) => {
-      deckId = data.deck_id;
-    });
-  console.log("H");
+let compScore = 0;
+let myScore = 0;
+
+async function handleClick() {
+  const response = await fetch(
+    "https://apis.scrimba.com/deckofcards/api/deck/new/shuffle/"
+  );
+  const data = await response.json();
+
+  deckId = data.deck_id;
+  remainingCards.textContent = `Remaining: ${data.remaining} `;
 }
 
 newDeckBtn.addEventListener("click", handleClick);
 
-drawCardBtn.addEventListener("click", () => {
-  fetch(`https://apis.scrimba.com/deckofcards/api/deck/${deckId}/draw/?count=2`)
-    .then((res) => res.json())
-    .then((data) => {
-      cardsContainer.children[0].innerHTML = `
+drawCardBtn.addEventListener("click", async () => {
+  const response = await fetch(
+    `https://apis.scrimba.com/deckofcards/api/deck/${deckId}/draw/?count=2`
+  );
+  const data = await response.json();
+
+  cardsContainer.children[0].innerHTML = `
                 <img src=${data.cards[0].image} class="card" />
             `;
-      cardsContainer.children[1].innerHTML = `
+  cardsContainer.children[1].innerHTML = `
                 <img src=${data.cards[1].image} class="card" />
             `;
-      for (let card of data.cards) {
-        if (card.value === "JACK") {
-          card.value = 11;
-        } else if (card.value === "QUEEN") {
-          card.value = 12;
-        } else if (card.value === "KING") {
-          card.value = 13;
-        } else if (card.value === "ACE") {
-          card.value = 14;
-        }
-      }
 
-      determineWinner(data.cards[0].value, data.cards[1].value);
-    });
+  const winnerText = determineCardWinner(data.cards[0], data.cards[1]);
+  winnerSection.textContent = winnerText;
+  remainingCards.textContent = `Remaining: ${data.remaining} `;
+
+  if (data.remaining === 0) {
+    drawCardBtn.disabled = true;
+    if (myScore > compScore) {
+      winnerSection.textContent = "Computer wins the war!";
+    } else if (compScore > myScore) {
+      winnerSection.textContent = "You win the war!";
+    } else {
+      winnerSection.textContent = "No one wins!";
+    }
+  }
 });
 
-function determineWinner(card1, card2) {
-  // const valueOptions = ["2", "3", "4", "5", "6", "7", "8", "9",
-  // "10", "JACK", "QUEEN", "KING", "ACE"];
-  // const card1ValueIndex = valueOptions.indexOf(card1.value)
-  // const card2ValueIndex = valueOptions.indexOf(card2.value)
-  // console.log("card 1:", card1ValueIndex)
-  // console.log("card 2:", card2ValueIndex)
+function determineCardWinner(card1, card2) {
+  const valueOptions = [
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "JACK",
+    "QUEEN",
+    "KING",
+    "ACE",
+  ];
+  const card1ValueIndex = valueOptions.indexOf(card1.value);
+  const card2ValueIndex = valueOptions.indexOf(card2.value);
 
-  let winner;
-  if (card1 > card2) {
-    winner = card1;
-  } else if (card2 > card1) {
-    winner = card2;
+  if (card1ValueIndex > card2ValueIndex) {
+    compScore++;
+    computerScoreEl.textContent = `
+    Computer score: ${compScore}
+    `;
+    return "Computer wins!";
+  } else if (card1ValueIndex < card2ValueIndex) {
+    myScore++;
+    myScoreEl.textContent = `
+    My score: ${myScore}
+    `;
+    return "You win";
   } else {
-    console.log("It's a tie!");
+    return "War!";
   }
-  console.log(`${winner} is the winner`);
 }
-
-// * Challenge:
-// *
-// * Try to determine which of the 2 cards is the "winner" (has higher value)
-// * Aces are the card with the highest "score"
-// *
-// * In parts:
-// *
-// * 1. Create a function that takes 2 card objects as parameters,
-// * `card1` and `card2`. These card objects have a property called
-// * `value`, which can be any one of the following strings, in
-// * order of rising "score":
-// *
-// * "2", "3", "4", "5", "6", "7", "8", "9",
-// * "10", "JACK", "QUEEN", "KING", "ACE"
-// *
-// * I.e. "2" is the lowest score and "ACE" is the highest.
-// *
-// * The function should determine which of the 2 cards (`card1`
-// * or `card2`) has the higher score, or if they have the same score.
-// *
-// * Log which card wins (or "It's a tie!"
-// * if they're the same) to the console
-// */
